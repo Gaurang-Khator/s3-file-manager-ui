@@ -2,14 +2,24 @@
 import React, { useEffect, useState } from "react";
 import {
   Card,
-  CardHeader,
-  CardTitle,
   CardContent,
 } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import FileItem from "./FileItem";
+import { 
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow 
+} from "@/components/ui/table";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Icons } from "@/components/icons";
 
 type ApiResponse = {
   files: { Key: string; Size: number; lastModified: string }[];
@@ -49,105 +59,238 @@ export default function FileManager({ apiPath }: { apiPath: string }) {
     selectedFolder ? f.Key.startsWith(selectedFolder) : true
   );
 
-  return (
-    <Card className="overflow-hidden">
-      <div className="flex">
-        {/* Left: folders */}
-        <aside className="w-64 border-r">
-          <CardHeader className="p-4">
-            <CardTitle className="flex items-center justify-between text-sm">
-              <span>Folders</span>
-              <span className="text-xs text-gray-500">{data.folders.length}</span>
-            </CardTitle>
-          </CardHeader>
+  function formatSize(n: number) {
+    if (n < 1024) return `${n} B`;
+    if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+    if (n < 1024 * 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+    return `${(n / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+  }
 
-          <CardContent className="p-0">
-            <ScrollArea className="h-[32rem]">
-              <div className="p-3 space-y-2">
+  function formatDate(iso: string) {
+    try {
+      const d = new Date(iso);
+      return d.toLocaleString(undefined, {
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+    } catch {
+      return iso;
+    }
+  }
+
+  function previewFile(file: { Key: string }) {
+    const url = `/api/objects/preview?key=${encodeURIComponent(file.Key)}`;
+    window.open(url, "_blank");
+  }
+
+  function downloadFile(file: { Key: string }) {
+    const url = `/api/objects/download?key=${encodeURIComponent(file.Key)}`;
+    // open in new tab to trigger download or navigate
+    window.open(url, "_blank");
+  }
+
+  function downloadFolder(prefix: string | null) {
+    if (!prefix) return;
+    const url = `/api/objects/download?prefix=${encodeURIComponent(prefix)}`;
+    window.open(url, "_blank");
+  }
+
+  return (
+    <Card>
+      <CardContent className="p-4">
+        {/* Header with actions */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSelectedFolder(null)}
+            >
+              <Icons.folderOpen className="w-4 h-4 mr-2" />
+              All Files
+            </Button>
+            
+            {selectedFolder && (
+              <div className="flex items-center gap-2">
+                <Icons.chevronRight className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  {selectedFolder}
+                </span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
                 <Button
-                  variant={selectedFolder === null ? "secondary" : "ghost"}
+                  variant="ghost"
                   size="sm"
-                  className="w-full justify-start"
                   onClick={() => setSelectedFolder(null)}
                 >
-                  All files
+                  <Icons.reset className="w-4 h-4" />
                 </Button>
+              </TooltipTrigger>
+              <TooltipContent>Reset view</TooltipContent>
+            </Tooltip>
 
-                {data.folders.map((f) => (
+            {selectedFolder && (
+              <Tooltip>
+                <TooltipTrigger asChild>
                   <Button
-                    key={f}
-                    variant={selectedFolder === f ? "secondary" : "ghost"}
+                    variant="outline"
                     size="sm"
-                    className="w-full justify-start"
-                    onClick={() => setSelectedFolder(f)}
+                    onClick={() => downloadFolder(selectedFolder)}
                   >
-                    <svg
-                      className="w-4 h-4 mr-2 text-amber-500"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path d="M2 6a2 2 0 012-2h4l2 2h6a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-                    </svg>
-                    <span className="truncate">{f}</span>
+                    <Icons.download className="w-4 h-4" />
                   </Button>
-                ))}
-              </div>
-            </ScrollArea>
-          </CardContent>
-        </aside>
+                </TooltipTrigger>
+                <TooltipContent>Download folder</TooltipContent>
+              </Tooltip>
+            )}
+          </div>
+        </div>
 
-        {/* Right: files */}
-        <section className="flex-1">
-          <CardHeader className="p-4 flex items-center justify-between">
-            <div>
-              <CardTitle className="text-sm">Files</CardTitle>
-              <div className="text-xs text-gray-500">
-                {loading ? "Loading..." : `${filesToShow.length} item(s)`}
-              </div>
-            </div>
+        {/* Folder list */}
+        <div className="grid grid-cols-4 gap-2 mb-4">
+          {data.folders.map((folder) => (
+            <Button
+              key={folder}
+              variant={selectedFolder === folder ? "secondary" : "outline"}
+              className="justify-start h-auto py-2"
+              onClick={() => setSelectedFolder(folder)}
+            >
+              <Icons.folder className="w-4 h-4 mr-2 text-amber-500" />
+              <span className="truncate">{folder}</span>
+            </Button>
+          ))}
+        </div>
 
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" onClick={() => {
-                setSelectedFolder(null);
-              }}>
-                Reset
-              </Button>
-            </div>
-          </CardHeader>
-
-          <Separator />
-
+        {/* Files table */}
+        <ScrollArea className="h-[calc(100vh-300px)] border rounded-md">
           {error ? (
             <div className="p-4 text-red-600">Error: {error}</div>
           ) : loading ? (
-            <div className="p-6">Loading files…</div>
+            <div className="p-4">Loading files...</div>
           ) : filesToShow.length === 0 ? (
-            <div className="p-6 text-gray-600">No files in this folder.</div>
+            <div className="p-4 text-muted-foreground">No files found</div>
           ) : (
-            <CardContent className="p-0">
-              <ScrollArea className="h-[32rem]">
-                <ul className="divide-y">
-                  {filesToShow.map((file) => (
-                    <li key={file.Key}>
-                      <FileItem
-                        keyName={file.Key}
-                        size={file.Size}
-                        lastModified={file.lastModified}
-                        onPreview={() => previewFile(file)}
-                      />
-                    </li>
-                  ))}
-                </ul>
-              </ScrollArea>
-            </CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="p-4">Name</TableHead>
+                  <TableHead>Size</TableHead>
+                  <TableHead>Modified</TableHead>
+                  <TableHead className="w-[100px] text-right pr-8">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filesToShow.map((file) => (
+                  <TableRow key={file.Key}>
+                    <TableCell className="font-medium p-4">
+                      <div className="flex items-center gap-2">
+                        <Icons.file className="w-4 h-4 text-muted-foreground" />
+                        <span className="truncate">{file.Key}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>{formatSize(file.Size)}</TableCell>
+                    <TableCell>{formatDate(file.lastModified)}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => previewFile(file)}
+                            >
+                              <Icons.eye className="w-4 h-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Preview</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => downloadFile(file)}
+                            >
+                              <Icons.download className="w-4 h-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Download</TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
-        </section>
-      </div>
+        </ScrollArea>
+      </CardContent>
     </Card>
   );
 }
 
-function previewFile(file: { Key: string }) {
-  const url = `/api/objects/preview?key=${encodeURIComponent(file.Key)}`;
-  window.open(url, "_blank");
+/* Small inline SVG icon components so no extra deps are required */
+function FolderIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    // eslint-disable-next-line react/jsx-props-no-spreading
+    <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+      <path d="M3 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
+    </svg>
+  );
+}
+function FileIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    // eslint-disable-next-line react/jsx-props-no-spreading
+    <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <path d="M14 2v6h6" fill="currentColor" />
+    </svg>
+  );
+}
+function DownloadIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    // eslint-disable-next-line react/jsx-props-no-spreading
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <path d="M7 10l5 5 5-5" />
+      <path d="M12 15V3" />
+    </svg>
+  );
+}
+function PreviewIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    // eslint-disable-next-line react/jsx-props-no-spreading
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M2 12s4-8 10-8 10 8 10 8-4 8-10 8S2 12 2 12z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+function ResetIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    // eslint-disable-next-line react/jsx-props-no-spreading
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M21 12a9 9 0 1 1-3-6.7L21 6" />
+      <path d="M21 3v6h-6" />
+    </svg>
+  );
+}
+function AllFilesIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    // eslint-disable-next-line react/jsx-props-no-spreading
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <rect x="3" y="3" width="7" height="7" />
+      <rect x="14" y="3" width="7" height="7" />
+      <rect x="14" y="14" width="7" height="7" />
+      <rect x="3" y="14" width="7" height="7" />
+    </svg>
+  );
 }
