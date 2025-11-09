@@ -31,6 +31,7 @@ export default function FileManager({ apiPath }: { apiPath: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
+  const [folderContents, setFolderContents] = useState<Record<string, ApiResponse>>({});
 
   useEffect(() => {
     let mounted = true;
@@ -54,6 +55,21 @@ export default function FileManager({ apiPath }: { apiPath: string }) {
       mounted = false;
     };
   }, [apiPath]);
+
+  // New function to fetch folder contents
+  const fetchFolderContents = async (folder: string) => {
+    try {
+      const res = await fetch(`${apiPath}?prefix=${encodeURIComponent(folder)}`);
+      if (!res.ok) throw new Error("Failed to fetch folder contents");
+      const json: ApiResponse = await res.json();
+      setFolderContents(prev => ({
+        ...prev,
+        [folder]: json
+      }));
+    } catch (err) {
+      console.error("Error fetching folder contents:", err);
+    }
+  };
 
   const filesToShow = data.files.filter((f) =>
     selectedFolder ? f.Key.startsWith(selectedFolder) : true
@@ -98,24 +114,39 @@ export default function FileManager({ apiPath }: { apiPath: string }) {
     window.open(url, "_blank");
   }
 
+  function getDisplayName(key: string, prefix: string | null): string | null {
+    if (!prefix) return key;
+    
+    // If the key exactly matches the prefix, return null
+    if (key === prefix) return null;
+    
+    const dispName = key.startsWith(prefix) ? key.slice(prefix.length) : key;
+    
+    // Return null instead of empty string or key
+    if (!dispName) return null;
+    
+    return dispName.startsWith('/') ? dispName.slice(1) : dispName;
+  }
+
   return (
     <Card>
       <CardContent className="p-4">
         {/* Header with actions */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between mb-4 ">
+          <div className="flex items-center gap-4 ">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setSelectedFolder(null)}
+              className="cursor-pointer"
             >
-              <Icons.folderOpen className="w-4 h-4 mr-2" />
+              <Icons.folderOpen className="w-4 h-4 mr-2 " />
               All Files
             </Button>
             
             {selectedFolder && (
               <div className="flex items-center gap-2">
-                <Icons.chevronRight className="w-4 h-4 text-muted-foreground" />
+                <Icons.chevronRight className="w-4 h-4 text-muted-foreground " />
                 <span className="text-sm text-muted-foreground">
                   {selectedFolder}
                 </span>
@@ -130,6 +161,7 @@ export default function FileManager({ apiPath }: { apiPath: string }) {
                   variant="ghost"
                   size="sm"
                   onClick={() => setSelectedFolder(null)}
+                  className="cursor-pointer"
                 >
                   <Icons.reset className="w-4 h-4" />
                 </Button>
@@ -144,6 +176,7 @@ export default function FileManager({ apiPath }: { apiPath: string }) {
                     variant="outline"
                     size="sm"
                     onClick={() => downloadFolder(selectedFolder)}
+                    className="cursor-pointer"
                   >
                     <Icons.download className="w-4 h-4" />
                   </Button>
@@ -160,11 +193,26 @@ export default function FileManager({ apiPath }: { apiPath: string }) {
             <Button
               key={folder}
               variant={selectedFolder === folder ? "secondary" : "outline"}
-              className="justify-start h-auto py-2"
-              onClick={() => setSelectedFolder(folder)}
+              className="justify-start h-auto py-2 cursor-pointer"
+              onClick={() => {
+                setSelectedFolder(folder);
+                // Fetch contents if we haven't already
+                if (!folderContents[folder]) {
+                  fetchFolderContents(folder);
+                }
+              }}
             >
-              <Icons.folder className="w-4 h-4 mr-2 text-amber-500" />
-              <span className="truncate">{folder}</span>
+              <div className="flex items-center justify-between w-full">
+                <div className="flex items-center gap-2">
+                  <Icons.folder className="w-4 h-4 text-amber-500" />
+                  <span className="truncate">{folder}</span>
+                </div>
+                {folderContents[folder] && (
+                  <span className="text-xs text-muted-foreground">
+                    {folderContents[folder].files.length-1}
+                  </span>
+                )}
+              </div>
             </Button>
           ))}
         </div>
@@ -175,25 +223,38 @@ export default function FileManager({ apiPath }: { apiPath: string }) {
             <div className="p-4 text-red-600">Error: {error}</div>
           ) : loading ? (
             <div className="p-4">Loading files...</div>
-          ) : filesToShow.length === 0 ? (
-            <div className="p-4 text-muted-foreground">No files found</div>
+          ) : selectedFolder && 
+              folderContents[selectedFolder]?.files.filter(file => 
+                getDisplayName(file.Key, selectedFolder) !== null
+              ).length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-[200px] text-muted-foreground">
+              <Icons.folder className="w-8 h-8 mb-2 text-muted-foreground/50" />
+              <p>This folder is empty</p>
+            </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="p-4">Name</TableHead>
+                  <TableHead className="pl-6">Name</TableHead>
                   <TableHead>Size</TableHead>
                   <TableHead>Modified</TableHead>
-                  <TableHead className="w-[100px] text-right pr-8">Actions</TableHead>
+                  <TableHead className="w-[100px] text-right pr-4">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filesToShow.map((file) => (
+                {(selectedFolder && folderContents[selectedFolder]
+                  ? folderContents[selectedFolder].files
+                  : filesToShow
+                )
+                  .filter(file => getDisplayName(file.Key, selectedFolder) !== null)
+                  .map((file) => (
                   <TableRow key={file.Key}>
                     <TableCell className="font-medium p-4">
                       <div className="flex items-center gap-2">
                         <Icons.file className="w-4 h-4 text-muted-foreground" />
-                        <span className="truncate">{file.Key}</span>
+                        <span className="truncate">
+                          {getDisplayName(file.Key, selectedFolder)}
+                        </span>
                       </div>
                     </TableCell>
                     <TableCell>{formatSize(file.Size)}</TableCell>
@@ -206,6 +267,7 @@ export default function FileManager({ apiPath }: { apiPath: string }) {
                               variant="ghost"
                               size="sm"
                               onClick={() => previewFile(file)}
+                              className="cursor-pointer"
                             >
                               <Icons.eye className="w-4 h-4" />
                             </Button>
@@ -218,6 +280,7 @@ export default function FileManager({ apiPath }: { apiPath: string }) {
                               variant="ghost"
                               size="sm"
                               onClick={() => downloadFile(file)}
+                              className="cursor-pointer"
                             >
                               <Icons.download className="w-4 h-4" />
                             </Button>
