@@ -14,12 +14,15 @@ import {
   TableHeader,
   TableRow 
 } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Icons } from "@/components/icons";
+import { Upload } from "lucide-react"; // Add this import
+import { toast } from "sonner"
 
 type ApiResponse = {
   files: { Key: string; Size: number; lastModified: string }[];
@@ -56,7 +59,6 @@ export default function FileManager({ apiPath }: { apiPath: string }) {
     };
   }, [apiPath]);
 
-  // New function to fetch folder contents
   const fetchFolderContents = async (folder: string) => {
     try {
       const res = await fetch(`${apiPath}?prefix=${encodeURIComponent(folder)}`);
@@ -104,7 +106,6 @@ export default function FileManager({ apiPath }: { apiPath: string }) {
 
   function downloadFile(file: { Key: string }) {
     const url = `/api/objects/download?key=${encodeURIComponent(file.Key)}`;
-    // open in new tab to trigger download or navigate
     window.open(url, "_blank");
   }
 
@@ -117,36 +118,122 @@ export default function FileManager({ apiPath }: { apiPath: string }) {
   function getDisplayName(key: string, prefix: string | null): string | null {
     if (!prefix) return key;
     
-    // If the key exactly matches the prefix, return null
     if (key === prefix) return null;
     
     const dispName = key.startsWith(prefix) ? key.slice(prefix.length) : key;
-    
-    // Return null instead of empty string or key
+
     if (!dispName) return null;
     
     return dispName.startsWith('/') ? dispName.slice(1) : dispName;
   }
 
+  async function handleUpload(folder: string, file: File) {
+    try {
+      // Get presigned URL
+      const keyPath = folder ? `${folder}${file.name}` : file.name;
+      const res = await fetch(`/api/upload?key=${encodeURIComponent(keyPath)}`);
+      if (!res.ok) throw new Error('Failed to get upload URL');
+      const { url } = await res.json();
+
+      // Upload file using presigned URL
+      const uploadRes = await fetch(url, {
+        method: 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': file.type,
+        },
+      });
+
+      if (!uploadRes.ok) throw new Error('Failed to upload file');
+
+      // Success toast with green styling
+      toast.success("File uploaded successfully", {
+        style: {
+          backgroundColor: '#22c55e', // green-500
+          color: 'white',
+          border: '1px solid #16a34a', // green-600
+        },
+        description: `${file.name} has been uploaded to ${folder}`,
+        duration: 3000,
+      });
+
+      // Refresh folder contents
+      if (folder) {
+        await fetchFolderContents(folder);
+      }
+    } catch (err) {
+      console.error('Upload error:', err);
+      // Error toast with red styling
+      toast.error("Upload failed", {
+        style: {
+          backgroundColor: '#dc2626', // red-600
+          color: 'white',
+          border: '1px solid #b91c1c', // red-700
+        },
+        description: "There was an error uploading your file. Please try again.",
+        duration: 3000,
+      });
+    }
+  }
+
+  // Update the UploadButton component
+  const UploadButton = ({ folder }: { folder: string }) => {
+    const inputRef = React.useRef<HTMLInputElement>(null);
+
+    return (
+      <>
+        <Input
+          ref={inputRef}
+          type="file"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) {
+              handleUpload(folder, file);
+              if (inputRef.current) inputRef.current.value = '';
+            }
+          }}
+        />
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => inputRef.current?.click()}
+              disabled={!folder}
+              className="cursor-pointer"
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Upload
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {folder ? `Upload to ${folder}` : 'Select a folder first'}
+          </TooltipContent>
+        </Tooltip>
+      </>
+    );
+  };
+
   return (
     <Card>
       <CardContent className="p-4">
         {/* Header with actions */}
-        <div className="flex items-center justify-between mb-4 ">
-          <div className="flex items-center gap-4 ">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-4">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setSelectedFolder(null)}
               className="cursor-pointer"
             >
-              <Icons.folderOpen className="w-4 h-4 mr-2 " />
+              <Icons.folderOpen className="w-4 h-4 mr-2" />
               All Files
             </Button>
             
             {selectedFolder && (
               <div className="flex items-center gap-2">
-                <Icons.chevronRight className="w-4 h-4 text-muted-foreground " />
+                <Icons.chevronRight className="w-4 h-4 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">
                   {selectedFolder}
                 </span>
@@ -155,6 +242,25 @@ export default function FileManager({ apiPath }: { apiPath: string }) {
           </div>
 
           <div className="flex items-center gap-2">
+            <UploadButton folder={selectedFolder ?? ''} />
+            
+            {selectedFolder && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => downloadFolder(selectedFolder)}
+                    className="cursor-pointer"
+                  >
+                    <Icons.download className="w-4 h-4 mr-2" />
+                    Download
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Download folder</TooltipContent>
+              </Tooltip>
+            )}
+
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -168,22 +274,6 @@ export default function FileManager({ apiPath }: { apiPath: string }) {
               </TooltipTrigger>
               <TooltipContent>Reset view</TooltipContent>
             </Tooltip>
-
-            {selectedFolder && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => downloadFolder(selectedFolder)}
-                    className="cursor-pointer"
-                  >
-                    <Icons.download className="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Download folder</TooltipContent>
-              </Tooltip>
-            )}
           </div>
         </div>
 
@@ -196,7 +286,7 @@ export default function FileManager({ apiPath }: { apiPath: string }) {
               className="justify-start h-auto py-2 cursor-pointer"
               onClick={() => {
                 setSelectedFolder(folder);
-                // Fetch contents if we haven't already
+
                 if (!folderContents[folder]) {
                   fetchFolderContents(folder);
                 }
@@ -238,7 +328,7 @@ export default function FileManager({ apiPath }: { apiPath: string }) {
                   <TableHead className="pl-6">Name</TableHead>
                   <TableHead>Size</TableHead>
                   <TableHead>Modified</TableHead>
-                  <TableHead className="w-[100px] text-right pr-4">Actions</TableHead>
+                  <TableHead className="w-[100px] text-right pr-12">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -260,7 +350,7 @@ export default function FileManager({ apiPath }: { apiPath: string }) {
                     <TableCell>{formatSize(file.Size)}</TableCell>
                     <TableCell>{formatDate(file.lastModified)}</TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center justify-end gap-2 pr-6">
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button
@@ -272,7 +362,7 @@ export default function FileManager({ apiPath }: { apiPath: string }) {
                               <Icons.eye className="w-4 h-4" />
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent>Preview</TooltipContent>
+                          <TooltipContent>Preview file</TooltipContent>
                         </Tooltip>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -285,7 +375,7 @@ export default function FileManager({ apiPath }: { apiPath: string }) {
                               <Icons.download className="w-4 h-4" />
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent>Download</TooltipContent>
+                          <TooltipContent>Download file</TooltipContent>
                         </Tooltip>
                       </div>
                     </TableCell>
