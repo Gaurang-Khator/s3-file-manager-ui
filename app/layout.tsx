@@ -4,6 +4,7 @@ import "./globals.css";
 
 import { ClerkProvider, SignedOut, SignIn, SignedIn } from "@clerk/nextjs";
 import { Toaster } from "@/components/ui/sonner"
+import AuthLanding from "@/components/ui/AuthLanding";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,9 +33,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <SignedOut>
-          <div className="min-h-screen min-w-screen flex justify-center items-center">
-            <SignIn routing="hash"/>
-            </div>
+          <AuthLanding />
         </SignedOut>
         <SignedIn> 
           {children} 
