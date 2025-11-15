@@ -99,20 +99,15 @@ export default function FileManager({ apiPath }: { apiPath: string }) {
     }
   }
 
-  function previewFile(file: { Key: string }) {
-    const url = `/api/objects/preview?key=${encodeURIComponent(file.Key)}`;
-    window.open(url, "_blank");
-  }
-
-  function downloadFile(file: { Key: string }) {
-    const url = `/api/objects/download?key=${encodeURIComponent(file.Key)}`;
-    window.open(url, "_blank");
-  }
-
   function downloadFolder(prefix: string | null) {
     if (!prefix) return;
-    const url = `/api/objects/download?prefix=${encodeURIComponent(prefix)}`;
-    window.open(url, "_blank");
+    const url = `/api/download?prefix=${encodeURIComponent(prefix)}`;
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${prefix}.zip`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 
   function getDisplayName(key: string, prefix: string | null): string | null {
@@ -214,6 +209,33 @@ export default function FileManager({ apiPath }: { apiPath: string }) {
       </>
     );
   };
+
+  const handleDownload = async (key: string) => {
+    try {
+        const response = await fetch(`/api/download?key=${encodeURIComponent(key)}`);
+        const data = await response.json();
+        
+        // Force download instead of opening in browser
+        const link = document.createElement('a');
+        link.href = data.url;
+        link.download = key.split('/').pop() || 'download'; // Extract filename
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    } catch (error) {
+        console.error('Download failed:', error);
+    }
+};
+  const handlePreview = async (key: string) => {
+    try {
+        const response = await fetch(`/api/preview?key=${encodeURIComponent(key)}`);
+        const data = await response.json();
+        
+        window.open(data.url, "_blank");
+    } catch (error) {
+        console.error('Download failed:', error);
+    }
+};
 
   return (
     <Card>
@@ -356,7 +378,7 @@ export default function FileManager({ apiPath }: { apiPath: string }) {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => previewFile(file)}
+                              onClick={() => handlePreview(file.Key)}
                               className="cursor-pointer"
                             >
                               <Icons.eye className="w-4 h-4" />
@@ -369,7 +391,7 @@ export default function FileManager({ apiPath }: { apiPath: string }) {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => downloadFile(file)}
+                              onClick={() => handleDownload(file.Key)}  
                               className="cursor-pointer"
                             >
                               <Icons.download className="w-4 h-4" />

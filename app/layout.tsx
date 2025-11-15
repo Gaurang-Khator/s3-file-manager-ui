@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "S3 File Manager UI",
+  title: "S3-Sync",
   description: "Created by Gaurang Khator",
 };
 
