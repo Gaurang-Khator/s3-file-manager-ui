@@ -12,7 +12,7 @@ S3 Sync is a lightweight, intuitive web app for managing files in Amazon S3 buck
 - **File Upload and Download**  
   Effortlessly upload files to your S3 bucket and download them anytime.  
 
-- **File Preview (New!)**  
+- **File Preview**  
   Instantly preview files such as images, videos, and PDF files directly in the browser before downloading.  
 
 - **Responsive User Interface**  
