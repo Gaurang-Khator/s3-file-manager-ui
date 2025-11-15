@@ -1,7 +1,9 @@
 'use client';
-
 import React, { useEffect } from "react";
 import { SignIn, useClerk } from "@clerk/nextjs";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Check, Upload, Shield, FolderOpen } from "lucide-react";
 
 export default function AuthLanding() {
   const clerk = useClerk();
@@ -10,8 +12,10 @@ export default function AuthLanding() {
     const handleUnload = () => {
       void clerk.signOut();
     };
+
     window.addEventListener("beforeunload", handleUnload);
     window.addEventListener("pagehide", handleUnload);
+
     return () => {
       window.removeEventListener("beforeunload", handleUnload);
       window.removeEventListener("pagehide", handleUnload);
@@ -20,91 +24,143 @@ export default function AuthLanding() {
 
   const features = [
     "Multi-bucket support",
-    "Drag & drop uploads",
+    "Simple file uploads",
     "Preview & quick downloads",
-    "Secure auth via Clerk",
+    "Secure authentication via Clerk",
   ];
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 p-6">
-      <div className="relative max-w-7xl w-full rounded-3xl overflow-hidden shadow-2xl dark:shadow-black/30 grid grid-cols-1 md:grid-cols-2">
-        {/* left hero */}
-        <div className="relative p-12 md:p-16 bg-gradient-to-b from-white/60 to-transparent dark:from-black/50 dark:to-transparent">
-          <div className="absolute inset-0 pointer-events-none opacity-70">
-            {/* decorative blobs */}
-            <svg className="w-full h-full" preserveAspectRatio="none" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <linearGradient id="g1" x1="0" x2="1">
-                  <stop offset="0" stopColor="#A78BFA" stopOpacity="0.12" />
-                  <stop offset="1" stopColor="#60A5FA" stopOpacity="0.08" />
-                </linearGradient>
-              </defs>
-              <path d="M0 400 C150 300 250 500 420 420 C590 340 700 520 800 420 L800 600 L0 600 Z" fill="url(#g1)"/>
-            </svg>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 relative overflow-hidden">
+      {/* Decorative blobs */}
+      <div className="absolute top-0 left-0 w-96 h-96 bg-blue-400/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
+      <div className="absolute bottom-0 right-0 w-96 h-96 bg-indigo-400/20 rounded-full blur-3xl translate-x-1/2 translate-y-1/2" />
 
-          <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 rounded-lg bg-gradient-to-tr from-purple-600 to-sky-500 flex items-center justify-center text-white text-xl font-semibold shadow-lg">
-                S3
+      <div className="relative z-10 grid lg:grid-cols-2 min-h-screen">
+        {/* Left hero section */}
+        <div className="flex items-center justify-center p-8 lg:p-12">
+          <div className="max-w-xl space-y-8">
+            {/* Logo/Brand */}
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-2 text-blue-600 font-bold text-sm tracking-wide">
+                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">
+                  S3
+                </div>
+                S3-Sync
               </div>
-              <div>
-                <h2 className="text-2xl font-extrabold tracking-tight">S3-Sync</h2>
-                <p className="text-sm text-muted-foreground">A simple, secure UI to manage your S3 buckets</p>
-              </div>
+              <h1 className="text-5xl lg:text-6xl font-bold text-slate-900 leading-tight">
+                A simple, secure UI to manage your S3 buckets
+              </h1>
             </div>
 
-            <h1 className="text-4xl md:text-5xl font-bold leading-tight mb-4">Manage files faster — secure by default</h1>
-            <p className="text-base text-muted-foreground max-w-xl mb-8">
-              Upload, preview, and organize files across buckets with an opinionated UI and Clerk authentication.
-            </p>
+            {/* Subtitle */}
+            <div className="space-y-3">
+              <h2 className="text-2xl font-semibold text-slate-800">
+                Manage files faster - secure by default
+              </h2>
+              <p className="text-lg text-slate-600">
+                Upload, preview, and organize files across buckets with an opinionated User Interface and Clerk authentication.
+              </p>
+            </div>
 
-            <ul className="space-y-3 mb-8">
-              {features.map((f) => (
-                <li key={f} className="flex items-start gap-3">
-                  <span className="mt-1 inline-flex h-6 w-6 items-center justify-center rounded-md bg-green-500 text-white">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
-                      <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </span>
-                  <span className="text-sm">{f}</span>
+            {/* Features list */}
+            {/* <ul className="space-y-3">
+              {features.map((feature, index) => (
+                <li key={index} className="flex items-center gap-3 text-slate-700">
+                  <div className="flex-shrink-0 w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center">
+                    <Check className="w-3 h-3 text-white" />
+                  </div>
+                  <span className="text-base">{feature}</span>
                 </li>
               ))}
-            </ul>
+            </ul> */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-8">
+              <Card className="border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                <CardHeader className="pb-1">
+                  <div className="flex items-center gap-2">
+                    <FolderOpen className="w-5 h-5 text-blue-600" />
+                    <CardTitle className="text-base">Multi-Bucket</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription>
+                    Access and manage multiple S3 buckets from one interface
+                  </CardDescription>
+                </CardContent>
+              </Card>
 
-            <div className="flex gap-3 items-center">
-              <a
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground shadow hover:brightness-95 transition"
-                href="#"
+              <Card className="border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                <CardHeader className="pb-1">
+                  <div className="flex items-center gap-2">
+                    <Upload className="w-5 h-5 text-blue-600" />
+                    <CardTitle className="text-base">Easy Uploads</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription>
+                    Drag and drop files or browse to upload to your buckets
+                  </CardDescription>
+                </CardContent>
+              </Card>
+
+              <Card className="border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                <CardHeader className="pb-1">
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-5 h-5 text-blue-600" />
+                    <CardTitle className="text-base">Secure Access</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription>
+                    Protected by Clerk authentication and AWS security
+                  </CardDescription>
+                </CardContent>
+              </Card>
+        </div>
+
+            {/* CTA Buttons */}
+            <div className="flex flex-wrap gap-4">
+              <Button
+                size="lg"
+                className="bg-blue-600 hover:bg-blue-700 text-white"
                 onClick={(e) => e.preventDefault()}
               >
                 Get started
-              </a>
-              <a className="text-sm text-muted-foreground underline" href="#" onClick={(e) => e.preventDefault()}>
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-slate-300"
+                onClick={(e) => e.preventDefault()}
+              >
                 Learn more
-              </a>
+              </Button>
             </div>
 
-            <p className="text-xs text-muted-foreground mt-8">Built with Next.js · Tailwind · Clerk</p>
+            {/* Footer tech stack */}
+            <p className="text-sm text-slate-500">
+              Built with Next.js · AWS · Tailwind CSS · Clerk
+            </p>
           </div>
         </div>
 
-        {/* right sign-in card */}
-        <div className="flex items-center justify-center p-8 md:p-12 bg-transparent">
-          <div className="w-full max-w-md bg-white/80 dark:bg-slate-900/70 backdrop-blur-md border border-border rounded-2xl shadow-lg p-6">
-            <div className="mb-6 text-center">
-              <h3 className="text-lg font-semibold">Welcome back</h3>
-              <p className="text-sm text-muted-foreground">Sign in to continue to your S3 dashboard</p>
-            </div>
-
-            <div className="mb-4">
-              <SignIn routing="hash" appearance={{ variables: { colorPrimary: 'var(--primary)' } }} />
-            </div>
-
-            <div className="mt-4 text-xs text-center text-muted-foreground">
-              By signing in you agree to the project's usage policy.
-            </div>
-          </div>
+        {/* Right sign-in section */}
+        <div className="flex items-center justify-center p-8 lg:p-12 bg-white/40 backdrop-blur-sm">
+          <Card className="w-full max-w-md shadow-xl border-slate-200">
+            <CardHeader className="space-y-1">
+              <CardTitle className="text-2xl font-bold text-center">
+                Welcome back
+              </CardTitle>
+              <CardDescription className="text-center text-base">
+                Sign in to continue to your S3 dashboard
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <SignIn routing="hash"/>
+              <p className="text-xs text-slate-500 text-center pt-4">
+                By signing in you agree to the project's usage policy.
+              </p>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
