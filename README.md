@@ -48,8 +48,23 @@ S3 Sync is a lightweight, intuitive web app for managing files in Amazon S3 buck
 
 ---
 
-<!-- ## 📸 Preview  
+## 📸 Preview  
 
-*(Add a screenshot or GIF here once available – e.g., `![App Preview](./preview.png)`)*
-  
---- -->
+### Application Screenshots
+
+<div align="center">
+  <img src="./assets/Screenshot 2025-11-15 181057.png" alt="Screenshot 1" width="400"/>
+  <img src="./assets/Screenshot 2025-11-15 181626.png" alt="Screenshot 2" width="400"/>
+</div>
+
+<div align="center">
+  <img src="./assets/Screenshot 2025-11-15 181706.png" alt="Screenshot 3" width="400"/>
+  <img src="./assets/Screenshot 2025-11-15 182259.png" alt="Screenshot 4" width="400"/>
+</div>
+
+<div align="center">
+  <img src="./assets/Screenshot 2025-11-15 182234.png" alt="Screenshot 5" width="400"/>
+  <img src="./assets/Screenshot 2025-11-15 182026.png" alt="Screenshot 6" width="400"/>
+</div>
+
+---
